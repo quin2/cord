@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styled from 'styled-components'
-import { Play, PlusCircle } from "phosphor-react";
+import { Play, PlusCircle, Pause } from "phosphor-react";
 
 import { useSelector, useDispatch, useSelector } from 'react-redux'
 import {
@@ -10,21 +10,21 @@ import {
 } from '../features/sceneSlice'
 
 const Scenes = styled.div`
-  width: 20%;
-  max-width: 300px;
-  height: auto;
+  width: 150px;
+  height: ${props => props.viewMode ? "fit-content" : "auto"};
   background-color: ${props => props.theme.surface};
   margin: 1em;
   border-radius: ${props => props.theme.radius};
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
 `
 
 const PlayButton = styled.button`
    width: 100px;
     height: 40px;
-   background-color: #388e3c;
+   background-color: ${props => props.theme.playButton};
    border: none;
    border-radius: 1em;
     margin-top: 1em;
@@ -38,7 +38,7 @@ const PlayButton = styled.button`
 
 const SceneCard = styled.div`
   height: auto;
-  background-color: ${props => props.selected ? "orange" : "lightgray"};
+  background-color: ${props => props.selected ? props.theme.selectedAccentItem : props.theme.accentItem};
   display: flex;
   align-items: left;
 background-clip: padding-box;
@@ -56,17 +56,33 @@ const SceneCardChild = styled.div`
 `
 
 const ImageCard = styled.div`
-  height: 100px;
+  background-color: white;
+  background-image: url(${props => props.img});
+  background-size: contain;
+  height: 80px;
   width: 100%;
-  background-color: white; 
   border-radius: ${props => props.theme.radius};
+  background-repeat: no-repeat;
 `
 
 const ImageCaption = styled.div`
   width: 100%;
   margin-top: 0.5em;
   font-size: 0.8em;
-  
+`
+
+const SceneList = styled.div`
+  overflow: scroll;
+  height: 83vh;
+  width: 100%;
+  border-radius: 1px 0 0 1px;
+`
+
+const AddSceneButton = styled(SceneCard)`
+  border-radius: 0 0 ${props => props.theme.radius}  ${props => props.theme.radius};
+  &:hover{
+    background-color: ${props => props.theme.selectedAccentItem};
+  }
 `
 
 export default function Sidebar(props){
@@ -80,29 +96,40 @@ export default function Sidebar(props){
   }
   
   return (
-    <Scenes>
-      <PlayButton>
-        <Play size={24} weight="fill"/>
+    <Scenes viewMode={props.viewMode}>
+      <PlayButton onClick={props.switchViewMode}>
+        {props.viewMode ? <Pause size={24} weight="fill" /> : <Play size={24} weight="fill"/>}
       </PlayButton>
-      {
-        Object.keys(scenes.scenes).map((keyName, index) => {
-          return (
-            <SceneCard selected={props.selectedScene == keyName} onClick={() => props.switchCanvas(keyName)}>
-              <SceneCardChild>
-                <ImageCard/>
-                <ImageCaption>
-                  {scenes.scenes[keyName].name}
-                </ImageCaption>
-              </SceneCardChild>
-            </SceneCard>
-          );
-        })
+      
+      {props.viewMode ?
+        null
+        :
+        <>
+          <SceneList>
+            {
+              Object.keys(scenes.scenes).map((keyName, index) => {
+                return (
+                  <SceneCard selected={props.selectedScene == keyName} onClick={() => props.switchCanvas(keyName)} key={keyName}>
+                    <SceneCardChild>
+                      <ImageCard img={scenes.scenes[keyName].background}/>
+                      <ImageCaption>
+                        {scenes.scenes[keyName].name}
+                      </ImageCaption>
+                    </SceneCardChild>
+                  </SceneCard>
+                );
+              })
+            }
+          </SceneList>
+
+          <AddSceneButton>
+            <SceneCardChild onClick={() => addSceneHandler()}>
+              <PlusCircle size={32} weight="fill" />
+            </SceneCardChild>
+          </AddSceneButton>
+        </>
       }
-      <SceneCard>
-        <SceneCardChild onClick={() => addSceneHandler()}>
-          <PlusCircle size={32} weight="fill" />
-        </SceneCardChild>
-      </SceneCard>
+      
   </Scenes>
   );
 }

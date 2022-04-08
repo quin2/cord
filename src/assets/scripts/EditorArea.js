@@ -1,5 +1,5 @@
 export default class MyCanvas {  
-  constructor(canvas, onClickRegion){
+  constructor(canvas, onClickRegion, hideContextMenu){
     this.canvas = canvas
 
      // Drive canvas
@@ -15,16 +15,22 @@ export default class MyCanvas {
     this.ctx.fillStyle = 'black';
 
     //set radius
-    this.radius = 10;
+    this.radius = 5;
 
     this.onClickRegion = onClickRegion;
+    this.hideContextMenu = hideContextMenu;
 
     //set handlers
     this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e), false);
     this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e), false);
     this.canvas.addEventListener('mousemove', (e) => this.handleDraw(e), false);
-    this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e), false);
 
+    console.log(this.canvas.parentElement)
+    window.addEventListener('resize', (e) => this.handleResize(e));
+
+    //firing too much in Safari 
+    //this.canvas.addEventListener('mouseleave', (e) => this.handleMouseUp(e), false);
+    this.foundActions = [];
   }
 
   //Public functions--------------------------------------------------------------
@@ -69,8 +75,15 @@ export default class MyCanvas {
     this.lastPoint = null;
     
     if(this.selectMode){
+      if(this.pauseSelectionMode){
+        this.pauseSelectionMode = false;
+        this.selectedRect = [];
+        this.hideContextMenu();
+      }
+
       let foundMatch = false;
       if(this.selectedRect.length > 0){
+        let foundRectKey;
         for(let i = 0; i < this.foundActions.length; i++){
           let found = false;
           for(let j = 0; j < this.foundActions[i].rect.length; j++){
@@ -78,17 +91,15 @@ export default class MyCanvas {
             else found = false;
           }
           if(found){
-            this.foundActions.splice(i, 1);
-            foundMatch = true;
+            foundRectKey = i;
             break;
           }
         }
         if(!foundMatch){
-          //this.foundActions.push({key: keyCounter, rect: selectedRect});
-          //this.keyCounter++;
+          this.pauseSelectionMode = true;
           const popupX = this.selectedRect[0] + this.selectedRect[2] + this.rect.left;
           const popupY = this.selectedRect[1] + this.selectedRect[3] + this.rect.top;
-          this.onClickRegion(popupX, popupY); //patch in x, y
+          this.onClickRegion(popupX, popupY, foundRectKey); //pass up data on this if we have it
         }
       }
     }
@@ -131,6 +142,11 @@ export default class MyCanvas {
     } 
   }
 
+  /* recalculates canvas bounding rect on resize */
+  handleResize(e){
+    this.rect = this.canvas.getBoundingClientRect();
+  }
+
   /* Clears canvas and resets drawing */
   handleClear(){
     clearInterval(this.interval);
@@ -148,18 +164,37 @@ export default class MyCanvas {
 
   /* Compresses canvas and saves as image */
   getContent(){
+    if(this.selectMode){
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.putImageData(this.original, 0, 0);
+    }
     return this.canvas.toDataURL("image/png");
   }
 
   /* Gets compressed image and paints it into canvas */
-  putContent(dataString){
-
+  putContent(dataString, frameData){
+    //load image
     const img = new Image();
     img.onload = () => {
-      console.log(img);
+      //testing only
       this.ctx.drawImage(img, 0, 0);
     }
     img.src = dataString;
+
+    //load existing frame data
+    this.foundActions = frameData;
+  }
+
+  /* Sets bounds object again. useful for editing/removing bounds objects */
+  removeLink(id){
+    this.foundActions = this.foundActions.splice(id, 1);
+    this.selectedRect = [];
+    this.pauseSelectionMode = false;
+  }
+
+  putLink(link){
+    this.foundActions = [...this.foundActions, link];
+    this.pauseSelectionMode = false;
   }
 
   //Helper functions--------------------------------------------------------------
@@ -209,14 +244,24 @@ export default class MyCanvas {
 
   /* Removes watcher for select mode */
   switchToDraw(){
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.putImageData(this.original, 0, 0);
+    this.selectedRect = [];
+
+    this.hideContextMenu();
     this.selectMode = false;
     clearInterval(this.interval);
   }
 
   /* Runs processing code for current view and switches to select mode */
   switchToLink(){
+    this.ctx.globalCompositeOperation = 'source-over'
     this.selectMode = true;
     this.runExport();
+  }
+
+  getLastClickedBound(){
+    return this.selectedRect;
   }
 
   //Select (link) mode core----------------------------------------------------------
@@ -224,13 +269,14 @@ export default class MyCanvas {
   /* Exports scene grapb */
    runExport(){
 
-  let contours = FindBounds(this.ctx, 1000, 1000) ;
+  let [contours, parents] = FindBounds(this.ctx, 1000, 1000) ;
+  this.foundEdgeParents = parents;
   this.foundEdges = [];
-     this.foundActions = [];
     
   for(let i = 0; i < contours.length; i++){
     let rect = contours[i];
 
+    /*
     //prune here
     let dup = false;
 
@@ -247,55 +293,69 @@ export default class MyCanvas {
     }
 
     if(dup) continue;
+    */
     this.foundEdges.push([rect[0], rect[1], rect[2], rect[3]]);
   }
-
-     console.log('dog')
-     console.log(this.foundEdges);
     
     this.original = this.ctx.getImageData(0,0,1000,1000);
 
+    this.pauseSelectionMode = false;
     this.interval = setInterval(() => this.gameLoop(), 10);
     this.selectMode = true;
+
 }
 
   /* runs code to watch mouse position and drive selection logic */
   gameLoop(){
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.putImageData(this.original, 0, 0);
-    this.selectedRect = [];
+    if(!this.pointCache) return;
+    
+    if(!this.pauseSelectionMode){
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.putImageData(this.original, 0, 0);
+      this.selectedRect = [];
 
-    //foundActions.length unknown
-    //clearRect not working :(
+      //foundActions.length unknown
+      //clearRect not working :(
 
-    for(let i = 0; i < this.foundActions.length; i++){
-      this.ctx.beginPath();
-      this.ctx.rect(this.foundActions[i].rect[0], this.foundActions[i].rect[1], this.foundActions[i].rect[2], this.foundActions[i].rect[3]);
-      this.ctx.strokeStyle = 'blue';
-      this.ctx.strokeWidth = 5;
-      this.ctx.stroke();
-
-      this.ctx.font = '48px serif';
-      this.ctx.fillText(this.foundActions[i].key, this.foundActions[i].rect[0] + this.foundActions[i].rect[2], this.foundActions[i].rect[1] + 1);
-    }
-
-    //v2: need to find closest shape edge to cursor
-    for(let i = 0; i < this.foundEdges.length; i++){
-      if(this.objInBounds(this.pointCache, this.foundEdges[i])){
+      for(let i = 0; i < this.foundActions.length; i++){
         this.ctx.beginPath();
-        this.ctx.rect(this.foundEdges[i][0], this.foundEdges[i][1], this.foundEdges[i][2], this.foundEdges[i][3]);
-
-        this.selectedRect = this.foundEdges[i];
-      
-        this.ctx.fillStyle = 'blue';
-        this.ctx.globalAlpha = 0.1;
-        //this.ctx.fill();
+        this.ctx.rect(this.foundActions[i].rect[0], this.foundActions[i].rect[1], this.foundActions[i].rect[2], this.foundActions[i].rect[3]);
+        this.ctx.strokeStyle = 'blue';
+        this.ctx.strokeWidth = 5;
         this.ctx.stroke();
-        this.ctx.globalAlpha = 1;
+
+        this.ctx.font = '48px serif';
+        this.ctx.fillText(this.foundActions[i].to, this.foundActions[i].rect[0] + this.foundActions[i].rect[2], this.foundActions[i].rect[1] + 1);
+      }
+
+      //v2: need to find closest shape edge to cursor
+      let maxParent = -2;
+      for(let i = 0; i < this.foundEdges.length; i++){
+        if(this.objInBounds(this.pointCache, this.foundEdges[i])){
+          //this.ctx.beginPath();
+          //this.ctx.rect(this.foundEdges[i][0], this.foundEdges[i][1], this.foundEdges[i][2], this.foundEdges[i][3]);
+
+          if(this.foundEdgeParents[i] > maxParent){
+            maxParent = this.foundEdgeParents[i];
+            this.selectedRect = this.foundEdges[i];
+          }
         
-        //break;
+          /*
+          this.ctx.fillStyle = 'blue';
+          this.ctx.globalAlpha = 0.5;
+          //this.ctx.fill();
+          this.ctx.stroke();
+          this.ctx.globalAlpha = 1;
+          */
+          //break;
+        }
       }
     }
+
+    this.ctx.strokeStyle = 'blue';
+    this.ctx.beginPath();
+    this.ctx.rect(this.selectedRect[0], this.selectedRect[1], this.selectedRect[2], this.selectedRect[3]);
+    this.ctx.stroke();
   }
 }
 
@@ -311,8 +371,7 @@ export function FindBounds(ctx, width, height){
   }
   
   let [contours, parent, borderType] = rasterScan(newImageData)
-  console.log(contours);
-  
+
   //get bounding rects
   let rects = []
   for(let i = 0; i < contours.length; i++){
@@ -343,7 +402,7 @@ export function FindBounds(ctx, width, height){
     rects.push([minX, minY, maxX - minX, maxY - minY]);
   }
 
-  return rects;
+  return [rects, parent];
 }
 
 

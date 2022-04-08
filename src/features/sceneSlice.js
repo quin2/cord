@@ -14,36 +14,53 @@ export const sceneSlice = createSlice({
   reducers:{
     addScene(state){
       const newKey = Object.keys(state.scenes).length + 1
-      state.scenes = {...state.scenes, [newKey]:{
+
+      return {...state, scenes: {...state.scenes, [newKey]:{
         name: `Scene ${newKey}`,
         background: "",
         links: []
-      }
-    }
+      }}};
     },
     setSceneBackground(state, action){
-      state.scenes[action.payload.id].background = action.payload.background;
+      const id = action.payload.id;
+      const bg = action.payload.background;
+      return {...state, scenes: {...state.scenes, [id]:{
+        ...state.scenes[id],
+        background: bg
+      }}}
     },
     setSceneName(state, action){
-      state.scenes[action.payload.id].name = action.payload.name
+      const localState = state
+      localState.scenes[action.payload.id].name = action.payload.name;
+
+      return localState;
     },
     addLink(state, action){
-      state.scenes[action.payload.id].links.push({
+      const localState = state;
+      localState.scenes[action.payload.id].links.push({
         to: action.payload.to,
-        anchorX: action.payload.anchorX,
-        anchorY: action.payload.anchorY
+        rect: action.payload.rect
       })
+
+      return localState;
     },
-    removeLink(){
+    removeLink(state, action){
       //your guess is as good as mine!
+      const localState = state
+      localState.scenes[action.payload.id].links.splice(action.payload.linkId, 1);
+
+      return localState;
     },
     editLink(){
       //your guess is as good as mine!
+    },
+    setContent(state, action){
+      return {...state, ...action.payload}
     }
   },
 })
 
-export const {addScene, setSceneBackground, setSceneName, addLink} = sceneSlice.actions;
+export const {addScene, setSceneBackground, setSceneName, addLink, removeLink, setContent} = sceneSlice.actions;
 export default sceneSlice.reducer;
 export const selectScenes = (state) => state.scenes;
 export const sceneCount = (state) => Object.keys(state.scenes.scenes).length;

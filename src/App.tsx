@@ -5,11 +5,14 @@ import Sidebar from './components/Sidebar';
 import Palette from './components/Palette';
 import Editor from './components/Editor';
 import LinkMenu from './components/LinkMenu';
+import EditorParent from './components/EditorParent';
+import Viewer from './components/Viewer';
 
 import { useDispatch, useSelector } from 'react-redux'
 import {
   setSceneBackground,
-  selectScenes
+  selectScenes,
+  addScene
 } from './features/sceneSlice'
 
 const Contain = styled.div`
@@ -28,55 +31,96 @@ const EditorArea = styled.div`
 `
 
 const theme = {
-  background: "#f2f9f1",
-  surface: "lightblue",
-  accent: "darkblue",
-  radius: "10px"
+  background: "#1D1A31",
+  surface: "#4D2D52" ,
+  accent: "#9A4C95",
+
+  selectedAccentItem: "#89AAE6",
+
+  radius: "10px",
+  playButton: "#5EF38C"
 };
+
 
 export default function App() {
   const dispatch = useDispatch();
   const scenes = useSelector(selectScenes);
 
   const [selectedTool, setSelectedTool] = React.useState<string>("draw");
-  const [openMenu, setOpenMenu] = React.useState(false);
-  const [menuLeft, setMenuLeft] = React.useState(0);
-  const [menuTop, setMenuTop] = React.useState(0);
   const [selectedScene, setSelectedScene] = React.useState(1);
+  const [openMenu, setOpenMenu] = React.useState(false);
   const [canvasRef, setCanvasRef] = useState();
 
-  function setLocation(x, y){
-    setMenuLeft(x);
-    setMenuTop(y);
-    setOpenMenu(true);
-  }
+  const [viewMode, setViewMode] = useState(false);
 
   function switchCanvas(targetScene){
+    setOpenMenu(false);
+    setSelectedTool('draw');
+
     const dataString = canvasRef.getContent();
-    dispatch(setSceneBackground({id: this.selectedScene, background: dataString}))
+    dispatch(setSceneBackground({id: selectedScene, background: dataString}))
     canvasRef.handleClear();
 
-    setSelectedScene(targetScene);
-
     const newDataString = scenes.scenes[targetScene];
-    canvasRef.putContent(newDataString.background);
+    if(newDataString){
+      canvasRef.putContent(newDataString.background, scenes.scenes[targetScene].links);
+    }
+
+    setSelectedScene(targetScene);
   }
-  
+
+  function cacheState(){
+    const dataString = canvasRef.getContent();
+    const background = {id: selectedScene, background: dataString}
+    dispatch(setSceneBackground(background))
+  }
+
+  //before we switch to view mode, cache canvas content
+  function switchViewMode(){
+    if(!viewMode){
+      //cache last page we were working on
+      cacheState()
+      setOpenMenu(false);
+    }
+
+    setViewMode(!viewMode)
+  }
+
+  function reloadState(content, links){
+    setSelectedScene(1);
+    canvasRef.putContent(content, links);
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <Contain>
         <EditorArea>
-          <LinkMenu show={openMenu} top={menuTop} left={menuLeft}/>
-          <Sidebar selectedScene={selectedScene} switchCanvas={switchCanvas}/>
-          <Palette selectedTool={selectedTool} setSelectedTool={setSelectedTool}/>
-          <Editor 
-            selectedTool={selectedTool} 
-            setMenu={setLocation} 
-            selectedScene={selectedScene} 
-            setSelectedScene={setSelectedScene}
-            canvasRef={canvasRef}
-            setCanvasRef={setCanvasRef}
-            />
+          <Sidebar selectedScene={selectedScene} switchCanvas={switchCanvas} viewMode={viewMode} switchViewMode={switchViewMode}/>
+          {viewMode ?
+            <Viewer/>
+            :
+            <>
+            <Palette 
+              selectedTool={selectedTool} 
+              setSelectedTool={setSelectedTool} 
+              reloadState={reloadState}
+              selectedScene={selectedScene}
+              canvasRef={canvasRef}
+              />
+            <EditorParent 
+              openMenu={openMenu}
+              setOpenMenu={setOpenMenu}
+              switchCanvas={switchCanvas} 
+              selectedScene={selectedScene} 
+              selectedTool={selectedTool} 
+              setSelectedScene={setSelectedScene} 
+              setSelectedTool={setSelectedTool}
+              canvasRef={canvasRef}
+              setCanvasRef={setCanvasRef}
+              />
+              </>
+            }
+          
         </EditorArea>
       </Contain>
     </ThemeProvider>
