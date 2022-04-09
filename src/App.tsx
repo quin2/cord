@@ -55,7 +55,7 @@ export default function App() {
   const [selectedTool, setSelectedTool] = React.useState<string>("draw");
   const [selectedScene, setSelectedScene] = React.useState(1);
   const [openMenu, setOpenMenu] = React.useState(false);
-  const [canvasRef, setCanvasRef] = useState();
+  const [canvasRef, setCanvasRef] = useState<any>();
 
   const [viewMode, setViewMode] = useState(false);
 
@@ -65,7 +65,7 @@ export default function App() {
     }
   }, []);
 
-  function switchCanvas(targetScene){
+  function switchCanvas(targetScene: number){
     setOpenMenu(false);
     setSelectedTool('draw');
 
@@ -98,7 +98,7 @@ export default function App() {
     setViewMode(!viewMode)
   }
 
-  function reloadState(content, links){
+  function reloadState(content: string, links: number[][]){
     setSelectedScene(1);
     canvasRef.putContent(content, links);
   }

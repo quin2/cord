@@ -2,7 +2,7 @@ import * as React from 'react';
 import styled from 'styled-components'
 import { Play, PlusCircle, Pause } from "phosphor-react";
 
-import { useSelector, useDispatch, useSelector } from 'react-redux'
+import { useSelector, useDispatch, } from 'react-redux'
 import {
   addScene,
   selectScenes,

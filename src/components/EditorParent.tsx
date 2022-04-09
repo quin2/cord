@@ -13,8 +13,19 @@ import {
   sceneCount
 } from '../features/sceneSlice'
 
+export interface IEditorParentProps {
+    selectedTool: string,
+    setSelectedTool: Function,
+    setOpenMenu: Function,
+    canvasRef: any,
+    switchCanvas: Function,
+    selectedScene: number,
+    openMenu: boolean,
+    setSelectedScene: Function,
+    setCanvasRef: Function
+}
 
-export default function EditorParent(props) {
+export default function EditorParent(props: IEditorParentProps) {
   const dispatch = useDispatch();
   const scenes = useSelector(selectScenes);
   const count = useSelector(sceneCount);
@@ -23,7 +34,7 @@ export default function EditorParent(props) {
   const [menuTop, setMenuTop] = React.useState(0);
   const [menuContext, setMenuContext] = React.useState<number | null>(null);
 
-  function setLocation(x, y, context){
+  function setLocation(x: number, y: number, context: number){
     setMenuLeft(x);
     setMenuTop(y);
     setMenuContext(context);
@@ -34,7 +45,7 @@ export default function EditorParent(props) {
     props.setOpenMenu(false);
   }
 
-  function createSceneDriver(copyLastScene){
+  function createSceneDriver(copyLastScene: boolean){
     //close popup
     props.setOpenMenu(false);
 
@@ -68,7 +79,7 @@ export default function EditorParent(props) {
   }
 
   //not dry but I can live with it
-  function addSceneLink(destId){
+  function addSceneLink(destId: number){
     props.setOpenMenu(false);
     const lastClickedBound = props.canvasRef.getLastClickedBound() //formatted as x, y, w, h
     const sceneLink = {id: props.selectedScene, to: destId, rect: lastClickedBound}

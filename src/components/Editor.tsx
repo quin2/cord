@@ -22,8 +22,18 @@ const EditorCanvas = styled.canvas`
   background-color: white;
 `
 
-const Editor = React.memo(props => {
-  const canv = React.useRef();
+export interface IEditorProps {
+  setSelectedTool: Function,
+  canvasRef: any,
+  hideMenu: Function,
+  setCanvasRef: Function,
+  selectedTool: string,
+  selectedScene: number,
+  setMenu: Function
+}
+
+const Editor = React.memo((props: IEditorProps) => {
+  const canv = React.useRef<HTMLCanvasElement>(null);
   const scenes = useSelector(selectScenes);
 
   
