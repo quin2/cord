@@ -33,8 +33,7 @@ const EditorArea = styled.div`
 const theme = {
   background: "#1D1A31",
   surface: "#4D2D52" ,
-  accent: "#9A4C95",
-
+  accentItem: "#9A4C95",
   selectedAccentItem: "#89AAE6",
 
   radius: "10px",
@@ -52,6 +51,12 @@ export default function App() {
   const [canvasRef, setCanvasRef] = useState();
 
   const [viewMode, setViewMode] = useState(false);
+
+  useEffect(() => {
+    if(window.innerHeight < 768 || window.innerWidth < 1024){
+      alert("Your screen might be too small :( Choosing a larger screen or expanding your window works best.")
+    }
+  }, []);
 
   function switchCanvas(targetScene){
     setOpenMenu(false);

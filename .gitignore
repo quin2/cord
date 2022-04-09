@@ -2,3 +2,4 @@
 /node_modules
 notes.txt
 package-lock.json
+/.DS_Store

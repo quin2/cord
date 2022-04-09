@@ -11,7 +11,7 @@ import {
 
 const Scenes = styled.div`
   width: 150px;
-  height: ${props => props.viewMode ? "fit-content" : "auto"};
+  height: ${props => props.viewMode ? "fit-content" : "95vh"};
   background-color: ${props => props.theme.surface};
   margin: 1em;
   border-radius: ${props => props.theme.radius};
@@ -29,6 +29,7 @@ const PlayButton = styled.button`
    border-radius: 1em;
     margin-top: 1em;
   margin-bottom: 1em;
+  cursor: pointer;
 
 
    display: flex;
@@ -45,6 +46,7 @@ background-clip: padding-box;
 flex-direction: column;
 font-size: 24px;
   width: 100%;
+  cursor: pointer;
 `
 
 const SceneCardChild = styled.div`
@@ -72,7 +74,7 @@ const ImageCaption = styled.div`
 `
 
 const SceneList = styled.div`
-  overflow: scroll;
+  overflow: auto;
   height: 83vh;
   width: 100%;
   border-radius: 1px 0 0 1px;
