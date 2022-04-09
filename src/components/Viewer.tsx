@@ -36,7 +36,7 @@ export default function Viewer(props){
 	const scenes = useSelector(selectScenes);
 
 	const controlBounds = scenes.scenes[playerScreen].links.map((link) => {
-		return <PlayerControlBound bound={link.rect} onClick={() => setPlayerScreen(link.to)}/>
+		return <PlayerControlBound bound={link.rect} key={link.rect[0]} onClick={() => setPlayerScreen(link.to)}/>
 	})
 
 	return (

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import styled, {ThemeProvider} from 'styled-components'
+import React, { useState, useEffect, useContext } from 'react'
+import styled, { ThemeProvider } from 'styled-components'
+import { Question } from "phosphor-react";
 
 import Sidebar from './components/Sidebar';
 import Palette from './components/Palette';
@@ -28,6 +29,12 @@ const EditorArea = styled.div`
   display: flex;
   flex-direction: row;
   width: 100%;
+`
+
+const HelpIcon = styled.a`
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
 `
 
 const theme = {
@@ -127,6 +134,9 @@ export default function App() {
             }
           
         </EditorArea>
+        <HelpIcon href="https://github.com/quin2/cord" target="_blank">
+          <Question size={32} weight="fill" color={theme.accentItem}/>
+        </HelpIcon>
       </Contain>
     </ThemeProvider>
   )
